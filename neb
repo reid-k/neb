@@ -1,0 +1,74 @@
+#!/usr/bin/env python
+
+from subprocess import call
+import os, sys
+
+if len(sys.argv)<2:
+    sys.argv += [""]
+
+confpath = os.getenv("HOME") + "/.newsbeuter/"
+upath = confpath + "urls-" + sys.argv[-1]
+
+def file_check(path):
+    if os.path.isdir(path):
+        print("A directory exists at " + path)
+        print("Rename or remove ths directory to use this collection name.")
+        sys.exit()
+    return os.path.isfile(path)
+
+def make_file(filename,announce=True):
+    if not file_check(filename):
+        call(["touch",filename])
+        if announce:
+            print("Created " + filename)
+
+def confirmed_make_file(filename,prompt):
+    while file_check(filename):
+        try:
+            i = lower(raw_input(prompt))
+        except EOFError:
+            sys.exit()
+        if i == "yes" or i == "y":
+            make_file(filename)
+        elif i == "no" or i == "n":
+            return False
+
+def make_collection(name):
+    urls = confpath + "urls-" + name
+    cache = confpath + name + ".db"
+    config = confpath + "config-" + name
+
+    print("Creating files in " + confpath + "for new collection \'" + name + "\':")
+
+    make_file(urls)
+    make_file(cache)
+    if confirmed_make_file(config,"Create collection-specific config file (Yes/No)? "):
+        print("New collection created!")
+        print("Add URLs to " + urls + " to start using this collection.")
+        print("See newsbeuter manual for details.")
+
+def open_newsbeuter(name):
+    if name == "":
+        call("newsbeuter")
+    else:
+        urls = confpath + "urls-" + name
+        cache = confpath + name + ".db"
+        config = confpath + "config-" + name
+
+        if not file_check(config):
+            config = confpath + "config"
+
+        nbargs = ["newsbeuter","-u",urls,"-c",cache,"-C",config]
+        call(nbargs)
+
+if sys.argv[-1] == "-h":
+    print("Usage:")
+    print("  To load default collection:  neb")
+    print("  To load custom collection:  neb <collection>")
+    print("  To display this message:  neb -h")
+    sys.exit()
+
+if not file_check(upath) and not sys.argv[-1]=="":
+    make_collection(sys.argv[-1])
+else:
+    open_newsbeuter(sys.argv[-1])
